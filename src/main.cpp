@@ -33,11 +33,11 @@ public:
 			position = {(10 + paddleSize.x), screenHeight / 2};
 		} else {
 			playerOwned = false;
-			position = {screenWidth - 10, screenHeight / 2};
+			position = {screenWidth - (10 + paddleSize.x), screenHeight / 2};
 		}
 	}
 
-	void update(sf::RenderWindow& window) {
+	void update(const sf::RenderWindow& window) {
 		if (playerOwned) {
 			const sf::Vector2i mousePos = sf::Mouse::getPosition(window);
 
@@ -54,8 +54,6 @@ public:
 				position.y = static_cast<float>(mousePos.y);
 			}
 		}
-
-		draw(window);
 	}
 
 	void draw(sf::RenderWindow& window) {
@@ -96,7 +94,7 @@ class Ball {
 			Window.draw(objectOnScreen);
 		}
 
-		void update(const float deltaTime, sf::RenderWindow& window, const Paddle& playerPaddle) {
+		void update(const float deltaTime, sf::RenderWindow& window, const Paddle& playerPaddle, const Paddle& CPUPaddle) {
 			newPos = position + (ballVelocity * deltaTime);
 
 			if (newPos.x >= (screenWidth - ballRadius) || newPos.x <= ballRadius) { // Checking if the ball has collided with the side of the screen (Non-Paddle.)
@@ -108,8 +106,16 @@ class Ball {
 				ballVelocity.y = -ballVelocity.y; // Inverse Y Velocity
 			}
 
-			if (objectOnScreen.getGlobalBounds().findIntersection(playerPaddle.objectOnScreen.getGlobalBounds()) && BallDir == Left) {
-				updateDir(Right);
+			if (BallDir == Right) {
+				if (objectOnScreen.getGlobalBounds().findIntersection(CPUPaddle.objectOnScreen.getGlobalBounds())) { // CPU Paddle Collision
+					updateDir(Left);
+				}
+			} else if (BallDir == Left) {
+				if (objectOnScreen.getGlobalBounds().findIntersection(playerPaddle.objectOnScreen.getGlobalBounds())) { // Player Paddle Collision
+					updateDir(Right);
+				}
+			} else {
+				cout << "[BALL] Object missing Direction Enum" << endl;
 			}
 
 			position = newPos;
@@ -124,6 +130,8 @@ int main()
 	Ball ballObject; // Initialise Ball Obj
 
 	Paddle playerPaddle(true); // Initialise Player Paddle Obj
+
+	Paddle CPUPaddle(false); // Init Computer paddle
 
 	sf::RenderWindow window(screenResolution, "Pong by thomedome", sf::Style::Titlebar | sf::Style::Close); // Initialise Window
 
@@ -152,11 +160,14 @@ int main()
 
 		window.clear();
 
-		ballObject.update(dt, window, playerPaddle); // update ball - calculates new position
+		ballObject.update(dt, window, playerPaddle, CPUPaddle); // update ball - calculates new position
 		ballObject.draw(window); // draw ball
 
 		playerPaddle.update(window); // update paddle - moves paddles position according to relative to window mouse pos
 		playerPaddle.draw(window); // draw player paddle
+
+		CPUPaddle.update(window);
+		CPUPaddle.draw(window);
 
 		window.display();
 	}
