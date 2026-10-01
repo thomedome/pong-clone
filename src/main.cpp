@@ -3,6 +3,8 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 
+using namespace std;
+
 const sf::VideoMode screenResolution({700, 700});
 constexpr float ballRadius = 10.f;
 constexpr sf::Vector2f paddleSize {50, 200};
@@ -36,8 +38,9 @@ public:
 
 			const auto floatedYPos = static_cast<float>(mousePos.y);
 
-			std::cout << floatedYPos << std::endl;
+			// cout << floatedYPos << std::endl;
 
+			// Clamping Y Position
 			if (floatedYPos < (0 + (paddleSize.y / 2))) { // If collided with roof
 				position.y = 0 + (paddleSize.y / 2);
 			} else if (floatedYPos > (screenHeight - (paddleSize.y / 2))) { // If collided with floor
@@ -87,8 +90,6 @@ class Ball {
 			}
 
 			position = newPos;
-
-			draw(window);
 		}
 };
 
@@ -97,7 +98,7 @@ int main()
 {
 	Ball ballObject; // Initialise Ball Obj
 
-	Paddle playerPaddle(true);
+	Paddle playerPaddle(true); // Initialise Player Paddle Obj
 
 	sf::RenderWindow window(screenResolution, "Pong by thomedome", sf::Style::Titlebar | sf::Style::Close); // Initialise Window
 
@@ -115,7 +116,7 @@ int main()
 
 		float dt = deltaClock.restart().asSeconds(); // DeltaTime between frames
 
-		// To prevent game breaking when user grabs window & Windows locks the thread, force dt to 1/60th of a second
+		// To prevent game breaking when user grabs window & Windows locks the thread, cap dt to 1/60th of a second
 
 		if (dt > 0.01666f) {
 			dt = 0.01666f;
@@ -126,8 +127,11 @@ int main()
 
 		window.clear();
 
-		ballObject.update(dt, window); // update ball - calculates new position and draws on screen
-		playerPaddle.update(window);
+		ballObject.update(dt, window); // update ball - calculates new position
+		ballObject.draw(window); // draw ball
+
+		playerPaddle.update(window); // update paddle - moves paddles position according to relative to window mouse pos
+		playerPaddle.draw(window); // draw player paddle
 
 		window.display();
 	}
