@@ -2,19 +2,64 @@
 #include <cmath>
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <random>
 
 using namespace std;
 
 const sf::VideoMode screenResolution({700, 700});
 constexpr float ballRadius = 10.f;
-constexpr sf::Vector2f paddleSize {50, 200};
+constexpr sf::Vector2f paddleSize {25, 200};
+constexpr float cpuPaddleMoveSpeed = 160.f;
+
+constexpr float ballSpeedIncrease = 1.01f;
+constexpr int LBRandomSpeed = 150;
+constexpr int UBRandomSpeed = 250;
 
 const float screenWidth {static_cast<float>(screenResolution.size.x)};
 const float screenHeight {static_cast<float>(screenResolution.size.y)};
 
+class Paddle;
+
 enum ballDirection {
 	Left,
 	Right,
+};
+
+class Ball {
+	public:
+		sf::Vector2f position = {static_cast<float>(screenResolution.size.x)/ 2.f, static_cast<float>(screenResolution.size.y) / 2.f};
+		sf::CircleShape objectOnScreen{ballRadius};
+		sf::Vector2f ballVelocity{0, 0};
+		sf::Vector2f newPos{};
+		ballDirection BallDir = Right;
+
+		bool conceded = false;
+
+		Ball() { // Constructor
+			objectOnScreen.setOrigin({ballRadius, ballRadius});
+			objectOnScreen.setFillColor(sf::Color::White);
+
+			objectOnScreen.setPosition(position);
+		}
+
+		void updateDir(const ballDirection dir) {
+			BallDir = dir;
+
+			if (BallDir == Left) {
+				ballVelocity.x = -std::abs(ballVelocity.x);
+			} else {
+				ballVelocity.x = std::abs(ballVelocity.x);
+			}
+
+			ballVelocity = sf::Vector2f(ballVelocity.x * ballSpeedIncrease, ballVelocity.y * ballSpeedIncrease);
+		}
+
+		void draw(sf::RenderWindow& Window) {
+			objectOnScreen.setPosition(position);
+			Window.draw(objectOnScreen);
+		}
+
+		void update(float deltaTime, const Paddle& playerPaddle, const Paddle& CPUPaddle); // Forward Declaration
 };
 
 class Paddle {
@@ -37,7 +82,7 @@ public:
 		}
 	}
 
-	void update(const sf::RenderWindow& window) {
+	void update(const sf::RenderWindow& window, const Ball& ball, const float dt) {
 		if (playerOwned) {
 			const sf::Vector2i mousePos = sf::Mouse::getPosition(window);
 
@@ -53,6 +98,17 @@ public:
 			} else { // Non Y-Axis Collision
 				position.y = static_cast<float>(mousePos.y);
 			}
+		} else if (!playerOwned) {
+			const float diff = position.y - ball.position.y;
+			const float futurePos = position.y + (cpuPaddleMoveSpeed * dt);
+
+			if (diff >= 20) {
+				position.y = position.y - (cpuPaddleMoveSpeed * dt);
+			} else if ((diff <= -20)) {
+				position.y = position.y + (cpuPaddleMoveSpeed * dt);
+			}
+
+			position.y = std::clamp(position.y, paddleSize.y / 2, screenHeight - (paddleSize.y / 2));
 		}
 	}
 
@@ -62,72 +118,45 @@ public:
 	}
 };
 
-class Ball {
-	public:
-		sf::Vector2f position = {static_cast<float>(screenResolution.size.x)/ 2.f, static_cast<float>(screenResolution.size.y) / 2.f};
-		sf::CircleShape objectOnScreen{ballRadius};
-		sf::Vector2f ballVelocity{-200.f, 0.f};
-		sf::Vector2f newPos{};
-		ballDirection BallDir = Left;
+void Ball::update(const float deltaTime, const Paddle& playerPaddle, const Paddle& CPUPaddle) {
+	newPos = position + (ballVelocity * deltaTime);
 
-		bool conceded = false;
+	if (newPos.x >= (screenWidth - ballRadius) || newPos.x <= ballRadius) { // Checking if the ball has collided with the side of the screen (Non-Paddle.)
+		conceded = true;
+		ballVelocity = {0, 0};
+	}
 
-		Ball() { // Constructor
-			objectOnScreen.setOrigin({ballRadius, ballRadius});
-			objectOnScreen.setFillColor(sf::Color::White);
+	if (newPos.y <= ballRadius || newPos.y >= (screenHeight - ballRadius)) { // Checking if the ball has collided with the roof / floor of the screen.
+		ballVelocity.y = -ballVelocity.y; // Inverse Y Velocity
+	}
 
-			objectOnScreen.setPosition(position);
+	if (BallDir == Right) {
+		if (objectOnScreen.getGlobalBounds().findIntersection(CPUPaddle.objectOnScreen.getGlobalBounds())) { // CPU Paddle Collision
+			updateDir(Left);
 		}
-
-		void updateDir(const ballDirection dir) {
-			BallDir = dir;
-
-			if (BallDir == Left) {
-				ballVelocity.x = -std::abs(ballVelocity.x);
-			} else {
-				ballVelocity.x = std::abs(ballVelocity.x);
-			}
+	} else if (BallDir == Left) {
+		if (objectOnScreen.getGlobalBounds().findIntersection(playerPaddle.objectOnScreen.getGlobalBounds())) { // Player Paddle Collision
+			updateDir(Right);
 		}
+	} else {
+		cout << "[BALL] Object missing Direction Enum" << endl;
+	}
 
-		void draw(sf::RenderWindow& Window) {
-			objectOnScreen.setPosition(position);
-			Window.draw(objectOnScreen);
-		}
-
-		void update(const float deltaTime, sf::RenderWindow& window, const Paddle& playerPaddle, const Paddle& CPUPaddle) {
-			newPos = position + (ballVelocity * deltaTime);
-
-			if (newPos.x >= (screenWidth - ballRadius) || newPos.x <= ballRadius) { // Checking if the ball has collided with the side of the screen (Non-Paddle.)
-				conceded = true;
-				ballVelocity = {0, 0};
-			}
-
-			if (newPos.y <= ballRadius || newPos.y >= (screenHeight - ballRadius)) { // Checking if the ball has collided with the roof / floor of the screen.
-				ballVelocity.y = -ballVelocity.y; // Inverse Y Velocity
-			}
-
-			if (BallDir == Right) {
-				if (objectOnScreen.getGlobalBounds().findIntersection(CPUPaddle.objectOnScreen.getGlobalBounds())) { // CPU Paddle Collision
-					updateDir(Left);
-				}
-			} else if (BallDir == Left) {
-				if (objectOnScreen.getGlobalBounds().findIntersection(playerPaddle.objectOnScreen.getGlobalBounds())) { // Player Paddle Collision
-					updateDir(Right);
-				}
-			} else {
-				cout << "[BALL] Object missing Direction Enum" << endl;
-			}
-
-			position = newPos;
-		}
-
-
-};
+	position = newPos;
+}
 
 
 int main()
 {
+	// Seed Random Device
+
+	std::random_device rd; // Seed the random device
+	std::mt19937 gen(rd()); // Using Mersenne Twister engine - better randomness than rand() and srand()
+	std::uniform_real_distribution<> dis(LBRandomSpeed, UBRandomSpeed); // distribution between 150 and 250
+
 	Ball ballObject; // Initialise Ball Obj
+
+	ballObject.ballVelocity = sf::Vector2f(static_cast<float>(dis(gen)), static_cast<float>(dis(gen)));
 
 	Paddle playerPaddle(true); // Initialise Player Paddle Obj
 
@@ -160,14 +189,14 @@ int main()
 
 		window.clear();
 
-		ballObject.update(dt, window, playerPaddle, CPUPaddle); // update ball - calculates new position
-		ballObject.draw(window); // draw ball
-
-		playerPaddle.update(window); // update paddle - moves paddles position according to relative to window mouse pos
+		playerPaddle.update(window, ballObject, dt); // update paddle - moves paddles position according to relative to window mouse pos
 		playerPaddle.draw(window); // draw player paddle
 
-		CPUPaddle.update(window);
+		CPUPaddle.update(window, ballObject, dt); // update paddle - moves according to ball pos
 		CPUPaddle.draw(window);
+
+		ballObject.update(dt, playerPaddle, CPUPaddle); // update ball - calculates new position
+		ballObject.draw(window); // draw ball
 
 		window.display();
 	}
