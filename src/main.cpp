@@ -3,8 +3,6 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <random>
-#include <thread>
-#include <chrono>
 
 using namespace std;
 
@@ -21,6 +19,8 @@ constexpr int timeBetweenRounds = 3;
 
 const float screenWidth {static_cast<float>(screenResolution.size.x)};
 const float screenHeight {static_cast<float>(screenResolution.size.y)};
+
+const sf::Font font ("assets/fonts/arial.ttf");
 
 static std::random_device rd; // Seed the random device
 static std::mt19937 gen(rd()); // Using Mersenne Twister engine - better randomness than rand() and srand()
@@ -175,6 +175,9 @@ void newRound(GameState& gc, sf::RenderWindow& window) {
 	Paddle playerPaddle(true); // Initialise Player Paddle Obj
 	Paddle CPUPaddle(false); // Init Computer paddle
 
+	sf::Text textObj{font, "0 - 0", 30};
+	textObj.setPosition(sf::Vector2f(screenWidth / 2, 30.f));
+
 	sf::Clock deltaClock; // Delta Clock - Used to update deltaTime for frames
 
 	while ( window.isOpen() )
@@ -206,6 +209,8 @@ void newRound(GameState& gc, sf::RenderWindow& window) {
 		const bool conceded = ballObject.update(dt, playerPaddle, CPUPaddle); // update ball - calculates new position
 		ballObject.draw(window); // draw ball
 
+		window.draw(textObj);
+
 		window.display();
 
 		if (conceded) {
@@ -215,10 +220,13 @@ void newRound(GameState& gc, sf::RenderWindow& window) {
 			if (ballObject.position.x < 350) {
 				gc.cpuScore += 1;
 				gc.roundWinner = E_player::CPU;
+
 			} else {
 				gc.playerScore += 1;
 				gc.roundWinner = E_player::Player;
 			}
+
+			textObj.setString(std::to_string(gc.playerScore) + " | " + std::to_string(gc.cpuScore));
 
 			return;
 		}
@@ -234,7 +242,6 @@ int main()
 
 	while (true) {
 		newRound(gameState, window);
-		cout << gameState.playerScore << " | " << gameState.cpuScore << endl;
 
 		if (gameState.cpuScore == gameState.scoreToWin) {
 			gameState.roundWinner = E_player::CPU;
@@ -247,7 +254,6 @@ int main()
 		sf::Clock roundClock = sf::Clock();
 
 		// Text Between Rounds
-		sf::Font font("assets/fonts/countdownText.ttf"); // Arial
 		sf::Text textObj {font, "3", 100};
 		textObj.setOrigin(textObj.getLocalBounds().getCenter());
 		textObj.setPosition(sf::Vector2f(screenWidth / 2, screenHeight / 2));
@@ -285,7 +291,6 @@ int main()
 	text = text + " won!";
 
 	sf::Clock endClock = sf::Clock();
-	sf::Font font("assets/fonts/countdownText.ttf"); // Arial
 	sf::Text textObj {font, text, 50};
 	textObj.setOrigin(textObj.getLocalBounds().getCenter());
 	textObj.setPosition(sf::Vector2f(screenWidth / 2, screenHeight / 2));
