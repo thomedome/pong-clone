@@ -19,6 +19,7 @@ public:
 
 	explicit Paddle(const bool isPlayer) { // Constructor
 		objectOnScreen.setOrigin({paddleSize.x / 2, paddleSize.y / 2});
+		objectOnScreen.setFillColor(sf::Color::White);
 
 		if (isPlayer) {
 			playerOwned = true;
@@ -29,11 +30,13 @@ public:
 		}
 	}
 
-	void update() {
+	void update(sf::RenderWindow& window) {
 		if (playerOwned) {
-			const sf::Vector2i mousePos = sf::Mouse::getPosition();
+			const sf::Vector2i mousePos = sf::Mouse::getPosition(window);
 
 			const auto floatedYPos = static_cast<float>(mousePos.y);
+
+			std::cout << floatedYPos << std::endl;
 
 			if (floatedYPos < (0 + (paddleSize.y / 2))) { // If collided with roof
 				position.y = 0 + (paddleSize.y / 2);
@@ -43,6 +46,13 @@ public:
 				position.y = static_cast<float>(mousePos.y);
 			}
 		}
+
+		draw(window);
+	}
+
+	void draw(sf::RenderWindow& window) {
+		objectOnScreen.setPosition(position);
+		window.draw(objectOnScreen);
 	}
 };
 
@@ -56,6 +66,7 @@ class Ball {
 
 		Ball() { // Constructor
 			objectOnScreen.setOrigin({ballRadius, ballRadius});
+			objectOnScreen.setFillColor(sf::Color::White);
 		}
 
 		void draw(sf::RenderWindow& Window) {
@@ -66,7 +77,7 @@ class Ball {
 		void update(const float deltaTime, sf::RenderWindow& window) {
 			const sf::Vector2f newPos = position + (ballVelocity * deltaTime);
 
-			if (newPos.x >= (screenWidth - ballRadius) || newPos.x <= ballRadius) { // Checking if the ball has collided with the side of the screen.
+			if (newPos.x >= (screenWidth - ballRadius) || newPos.x <= ballRadius) { // Checking if the ball has collided with the side of the screen (Non-Paddle.)
 				conceded = true;
 				ballVelocity = {0, 0};
 			}
@@ -85,6 +96,9 @@ class Ball {
 int main()
 {
 	Ball ballObject; // Initialise Ball Obj
+
+	Paddle playerPaddle(true);
+
 	sf::RenderWindow window(screenResolution, "Pong by thomedome", sf::Style::Titlebar | sf::Style::Close); // Initialise Window
 
 	window.setVerticalSyncEnabled(true);
@@ -108,11 +122,12 @@ int main()
 		}
 
 		const unsigned int fps {static_cast<unsigned int>(std::ceil(1 / dt))};
-		std::cout << fps << "FPS" << std::endl;
+		// std::cout << fps << "FPS" << std::endl;
 
 		window.clear();
 
 		ballObject.update(dt, window); // update ball - calculates new position and draws on screen
+		playerPaddle.update(window);
 
 		window.display();
 	}
