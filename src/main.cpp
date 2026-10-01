@@ -17,6 +17,8 @@ constexpr float ballSpeedIncrease = 1.01f;
 constexpr int LBRandomSpeed = 150;
 constexpr int UBRandomSpeed = 250;
 
+constexpr int timeBetweenRounds = 3;
+
 const float screenWidth {static_cast<float>(screenResolution.size.x)};
 const float screenHeight {static_cast<float>(screenResolution.size.y)};
 
@@ -242,7 +244,33 @@ int main()
 			break;
 		}
 
-		this_thread::sleep_for(3s);
+		sf::Clock roundClock = sf::Clock();
+
+		// Text Between Rounds
+		sf::Font font("assets/fonts/countdownText.ttf"); // Arial
+		sf::Text textObj {font, "3", 100};
+		textObj.setOrigin(textObj.getLocalBounds().getCenter());
+		textObj.setPosition(sf::Vector2f(screenWidth / 2, screenHeight / 2));
+
+		while (true) {
+			const float elapsed = roundClock.getElapsedTime().asSeconds();
+
+			if (elapsed < 1) {
+				textObj.setString("3");
+			} if (elapsed > 1 && elapsed < 2) {
+				textObj.setString("2");
+			} if (elapsed > 2 && elapsed < 3) {
+				textObj.setString("1");
+			} if (elapsed > 3) {
+				window.clear();
+				window.display();
+				break;
+			}
+
+			window.clear();
+			window.draw(textObj);
+			window.display();
+		}
 
 	}
 
