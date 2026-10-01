@@ -19,6 +19,13 @@ FetchContent_MakeAvailable(SFML)
 
 add_executable(Pong src/main.cpp)
 
+add_custom_command(
+        TARGET Pong POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/assets
+        $<TARGET_FILE_DIR:Pong>/assets
+)
+
 target_compile_features(Pong PRIVATE cxx_std_17)
 
 target_link_libraries(Pong PRIVATE SFML::Graphics)
