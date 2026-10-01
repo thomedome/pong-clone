@@ -282,10 +282,28 @@ int main()
 		text = "Player";
 	}
 
-	cout << text << " won the game!" << endl;
+	text = text + " won!";
+
+	sf::Clock endClock = sf::Clock();
+	sf::Font font("assets/fonts/countdownText.ttf"); // Arial
+	sf::Text textObj {font, text, 50};
+	textObj.setOrigin(textObj.getLocalBounds().getCenter());
+	textObj.setPosition(sf::Vector2f(screenWidth / 2, screenHeight / 2));
+
+	while (true) {
+		const float elapsed = endClock.getElapsedTime().asSeconds();
+		if (elapsed < 5) {
+			window.clear();
+			window.draw(textObj);
+			window.display();
+		}
+
+		if (elapsed > 5) {
+			break;
+		}
+	}
 
 	window.close();
 
 	return 0;
-
 }
