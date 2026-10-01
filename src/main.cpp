@@ -3,6 +3,8 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <random>
+#include <thread>
+#include <chrono>
 
 using namespace std;
 
@@ -18,11 +20,30 @@ constexpr int UBRandomSpeed = 250;
 const float screenWidth {static_cast<float>(screenResolution.size.x)};
 const float screenHeight {static_cast<float>(screenResolution.size.y)};
 
+static std::random_device rd; // Seed the random device
+static std::mt19937 gen(rd()); // Using Mersenne Twister engine - better randomness than rand() and srand()
+static std::uniform_real_distribution<> dis(LBRandomSpeed, UBRandomSpeed); // distribution between 150 and 250
+
+
 class Paddle;
 
 enum ballDirection {
 	Left,
 	Right,
+};
+
+enum E_player {
+	Player,
+	CPU
+};
+
+class GameState {
+public:
+	unsigned int playerScore {0};
+	unsigned int cpuScore {0};
+
+	const unsigned int scoreToWin = 3;
+	E_player roundWinner {};
 };
 
 class Ball {
@@ -40,6 +61,7 @@ class Ball {
 			objectOnScreen.setFillColor(sf::Color::White);
 
 			objectOnScreen.setPosition(position);
+			ballVelocity = sf::Vector2f(static_cast<float>(dis(gen)), static_cast<float>(dis(gen)));
 		}
 
 		void updateDir(const ballDirection dir) {
@@ -59,7 +81,7 @@ class Ball {
 			Window.draw(objectOnScreen);
 		}
 
-		void update(float deltaTime, const Paddle& playerPaddle, const Paddle& CPUPaddle); // Forward Declaration
+		bool update(float deltaTime, const Paddle& playerPaddle, const Paddle& CPUPaddle); // Forward Declaration
 };
 
 class Paddle {
@@ -74,10 +96,8 @@ public:
 		objectOnScreen.setFillColor(sf::Color::White);
 
 		if (isPlayer) {
-			playerOwned = true;
 			position = {(10 + paddleSize.x), screenHeight / 2};
 		} else {
-			playerOwned = false;
 			position = {screenWidth - (10 + paddleSize.x), screenHeight / 2};
 		}
 	}
@@ -100,7 +120,6 @@ public:
 			}
 		} else if (!playerOwned) {
 			const float diff = position.y - ball.position.y;
-			const float futurePos = position.y + (cpuPaddleMoveSpeed * dt);
 
 			if (diff >= 20) {
 				position.y = position.y - (cpuPaddleMoveSpeed * dt);
@@ -118,12 +137,13 @@ public:
 	}
 };
 
-void Ball::update(const float deltaTime, const Paddle& playerPaddle, const Paddle& CPUPaddle) {
+bool Ball::update(const float deltaTime, const Paddle& playerPaddle, const Paddle& CPUPaddle) {
 	newPos = position + (ballVelocity * deltaTime);
 
 	if (newPos.x >= (screenWidth - ballRadius) || newPos.x <= ballRadius) { // Checking if the ball has collided with the side of the screen (Non-Paddle.)
 		conceded = true;
 		ballVelocity = {0, 0};
+		return true;
 	}
 
 	if (newPos.y <= ballRadius || newPos.y >= (screenHeight - ballRadius)) { // Checking if the ball has collided with the roof / floor of the screen.
@@ -143,28 +163,15 @@ void Ball::update(const float deltaTime, const Paddle& playerPaddle, const Paddl
 	}
 
 	position = newPos;
+
+	return false;
 }
 
-
-int main()
-{
+void newRound(GameState& gc, sf::RenderWindow& window) {
 	// Seed Random Device
-
-	std::random_device rd; // Seed the random device
-	std::mt19937 gen(rd()); // Using Mersenne Twister engine - better randomness than rand() and srand()
-	std::uniform_real_distribution<> dis(LBRandomSpeed, UBRandomSpeed); // distribution between 150 and 250
-
 	Ball ballObject; // Initialise Ball Obj
-
-	ballObject.ballVelocity = sf::Vector2f(static_cast<float>(dis(gen)), static_cast<float>(dis(gen)));
-
 	Paddle playerPaddle(true); // Initialise Player Paddle Obj
-
 	Paddle CPUPaddle(false); // Init Computer paddle
-
-	sf::RenderWindow window(screenResolution, "Pong by thomedome", sf::Style::Titlebar | sf::Style::Close); // Initialise Window
-
-	window.setVerticalSyncEnabled(true);
 
 	sf::Clock deltaClock; // Delta Clock - Used to update deltaTime for frames
 
@@ -184,8 +191,7 @@ int main()
 			dt = 0.01666f;
 		}
 
-		const unsigned int fps {static_cast<unsigned int>(std::ceil(1 / dt))};
-		// std::cout << fps << "FPS" << std::endl;
+		// const unsigned int fps {static_cast<unsigned int>(std::ceil(1 / dt))};
 
 		window.clear();
 
@@ -195,9 +201,63 @@ int main()
 		CPUPaddle.update(window, ballObject, dt); // update paddle - moves according to ball pos
 		CPUPaddle.draw(window);
 
-		ballObject.update(dt, playerPaddle, CPUPaddle); // update ball - calculates new position
+		const bool conceded = ballObject.update(dt, playerPaddle, CPUPaddle); // update ball - calculates new position
 		ballObject.draw(window); // draw ball
 
 		window.display();
+
+		if (conceded) {
+			window.clear();
+			window.display();
+
+			if (ballObject.position.x < 350) {
+				gc.cpuScore += 1;
+				gc.roundWinner = E_player::CPU;
+			} else {
+				gc.playerScore += 1;
+				gc.roundWinner = E_player::Player;
+			}
+
+			return;
+		}
 	}
+}
+
+int main()
+{
+	sf::RenderWindow window(screenResolution, "Pong by thomedome", sf::Style::Titlebar | sf::Style::Close); // Initialise Window
+	window.setVerticalSyncEnabled(true); // Prevent GPU Burn
+
+	GameState gameState;
+
+	while (true) {
+		newRound(gameState, window);
+		cout << gameState.playerScore << " | " << gameState.cpuScore << endl;
+
+		if (gameState.cpuScore == gameState.scoreToWin) {
+			gameState.roundWinner = E_player::CPU;
+			break;
+		} if (gameState.playerScore == gameState.scoreToWin) {
+			gameState.roundWinner = E_player::Player;
+			break;
+		}
+
+		this_thread::sleep_for(3s);
+
+	}
+
+	string text {};
+
+	if (gameState.roundWinner == E_player::CPU) {
+		text = "CPU";
+	} else if (gameState.roundWinner == E_player::Player) {
+		text = "Player";
+	}
+
+	cout << text << " won the game!" << endl;
+
+	window.close();
+
+	return 0;
+
 }
