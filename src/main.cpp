@@ -17,7 +17,7 @@ public:
 
 	bool playerOwned;
 
-	explicit Paddle(const bool isPlayer) { // Constructor
+	explicit Paddle(const bool isPlayer) : playerOwned(isPlayer) { // Constructor
 		objectOnScreen.setOrigin({paddleSize.x / 2, paddleSize.y / 2});
 		objectOnScreen.setFillColor(sf::Color::White);
 
