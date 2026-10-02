@@ -44,6 +44,8 @@ public:
 	unsigned int playerScore {0};
 	unsigned int cpuScore {0};
 
+	sf::Text scoreLineObj;
+
 	const unsigned int scoreToWin = 3;
 	E_player roundWinner {};
 };
@@ -175,9 +177,6 @@ void newRound(GameState& gc, sf::RenderWindow& window) {
 	Paddle playerPaddle(true); // Initialise Player Paddle Obj
 	Paddle CPUPaddle(false); // Init Computer paddle
 
-	sf::Text textObj{font, "0 - 0", 30};
-	textObj.setPosition(sf::Vector2f(screenWidth / 2, 30.f));
-
 	sf::Clock deltaClock; // Delta Clock - Used to update deltaTime for frames
 
 	while ( window.isOpen() )
@@ -209,7 +208,7 @@ void newRound(GameState& gc, sf::RenderWindow& window) {
 		const bool conceded = ballObject.update(dt, playerPaddle, CPUPaddle); // update ball - calculates new position
 		ballObject.draw(window); // draw ball
 
-		window.draw(textObj);
+		window.draw(gc.scoreLineObj);
 
 		window.display();
 
@@ -226,7 +225,7 @@ void newRound(GameState& gc, sf::RenderWindow& window) {
 				gc.roundWinner = E_player::Player;
 			}
 
-			textObj.setString(std::to_string(gc.playerScore) + " | " + std::to_string(gc.cpuScore));
+			gc.scoreLineObj.setString(std::to_string(gc.playerScore) + " | " + std::to_string(gc.cpuScore));
 
 			return;
 		}
@@ -239,6 +238,9 @@ int main()
 	window.setVerticalSyncEnabled(true); // Prevent GPU Burn
 
 	GameState gameState;
+
+	sf::Text textObj{font, "0 - 0", 30};
+	textObj.setPosition(sf::Vector2f(screenWidth / 2, 30.f));
 
 	while (true) {
 		newRound(gameState, window);
@@ -254,19 +256,19 @@ int main()
 		sf::Clock roundClock = sf::Clock();
 
 		// Text Between Rounds
-		sf::Text textObj {font, "3", 100};
-		textObj.setOrigin(textObj.getLocalBounds().getCenter());
-		textObj.setPosition(sf::Vector2f(screenWidth / 2, screenHeight / 2));
+		sf::Text text_obj {font, "3", 100};
+		text_obj.setOrigin(text_obj.getLocalBounds().getCenter());
+		text_obj.setPosition(sf::Vector2f(screenWidth / 2, screenHeight / 2));
 
 		while (true) {
 			const float elapsed = roundClock.getElapsedTime().asSeconds();
 
 			if (elapsed < 1) {
-				textObj.setString("3");
+				text_obj.setString("3");
 			} if (elapsed > 1 && elapsed < 2) {
-				textObj.setString("2");
+				text_obj.setString("2");
 			} if (elapsed > 2 && elapsed < 3) {
-				textObj.setString("1");
+				text_obj.setString("1");
 			} if (elapsed > 3) {
 				window.clear();
 				window.display();
@@ -274,7 +276,7 @@ int main()
 			}
 
 			window.clear();
-			window.draw(textObj);
+			window.draw(text_obj);
 			window.display();
 		}
 
@@ -290,16 +292,16 @@ int main()
 
 	text = text + " won!";
 
-	sf::Clock endClock = sf::Clock();
-	sf::Text textObj {font, text, 50};
-	textObj.setOrigin(textObj.getLocalBounds().getCenter());
-	textObj.setPosition(sf::Vector2f(screenWidth / 2, screenHeight / 2));
+	const sf::Clock endClock = sf::Clock();
+	sf::Text endTextObj {font, text, 50};
+	endTextObj.setOrigin(endTextObj.getLocalBounds().getCenter());
+	endTextObj.setPosition(sf::Vector2f(screenWidth / 2, screenHeight / 2));
 
 	while (true) {
 		const float elapsed = endClock.getElapsedTime().asSeconds();
 		if (elapsed < 5) {
 			window.clear();
-			window.draw(textObj);
+			window.draw(endTextObj);
 			window.display();
 		}
 
