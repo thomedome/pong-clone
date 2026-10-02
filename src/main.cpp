@@ -239,14 +239,20 @@ void newRound(GameState& gc, sf::RenderWindow& window) {
 	}
 }
 
-int main()
-{
+int main() {
 	sf::RenderWindow window(screenResolution, "Pong by thomedome", sf::Style::Titlebar | sf::Style::Close); // Initialise Window
 	window.setVerticalSyncEnabled(true); // Prevent GPU Burn
 
 	GameState gameState;
 
-	while (true) {
+	while (window.isOpen()) {
+
+		while ( const std::optional event = window.pollEvent() ) {
+			if ( event->is<sf::Event::Closed>() ) {
+				window.close();
+			}
+		}
+
 		newRound(gameState, window);
 
 		if (gameState.cpuScore == gameState.scoreToWin) {
@@ -264,7 +270,14 @@ int main()
 		textObj.setOrigin(textObj.getLocalBounds().getCenter());
 		textObj.setPosition(sf::Vector2f(screenWidth / 2, screenHeight / 2));
 
-		while (true) {
+		while (window.isOpen()) {
+
+			while ( const std::optional event = window.pollEvent() ) {
+				if ( event->is<sf::Event::Closed>() ) {
+					window.close();
+				}
+			}
+
 			const float elapsed = roundClock.getElapsedTime().asSeconds();
 
 			if (elapsed < 1) {
@@ -284,8 +297,6 @@ int main()
 			window.display();
 		}
 
-	}
-
 	string text {};
 
 	if (gameState.roundWinner == E_player::CPU) {
@@ -294,18 +305,23 @@ int main()
 		text = "Player";
 	}
 
-	text = text + " won!";
+	text += " won!";
 
 	sf::Clock endClock = sf::Clock();
-	sf::Text textObj {font, text, 50};
-	textObj.setOrigin(textObj.getLocalBounds().getCenter());
-	textObj.setPosition(sf::Vector2f(screenWidth / 2, screenHeight / 2));
+	sf::Text textObj1 {font, text, 50};
+	textObj1.setOrigin(textObj1.getLocalBounds().getCenter());
+	textObj1.setPosition(sf::Vector2f(screenWidth / 2, screenHeight / 2));
 
-	while (true) {
+	while (window.isOpen()) {
+		while (const std::optional event = window.pollEvent() ) {
+			if ( event->is<sf::Event::Closed>() ) {
+				window.close();
+			}
+		}
 		const float elapsed = endClock.getElapsedTime().asSeconds();
 		if (elapsed < 5) {
 			window.clear();
-			window.draw(textObj);
+			window.draw(textObj1);
 			window.display();
 		}
 
@@ -313,7 +329,7 @@ int main()
 			break;
 		}
 	}
-
+}
 	window.close();
 
 	return 0;
