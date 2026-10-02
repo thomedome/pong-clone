@@ -9,4 +9,9 @@ Thought it was a simple starter project to begin learning how low level renderin
 - SFML 3
 - CMake
 
+<br>
+
+## Preview Image
+<br>
+
 ![Pong gameplay](preview.png)
