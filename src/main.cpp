@@ -44,6 +44,15 @@ public:
 	unsigned int playerScore {0};
 	unsigned int cpuScore {0};
 
+	// Score Text
+	sf::Text scoreText{font, "0 | 0", 30};
+
+	GameState() {
+		scoreText.setPosition(sf::Vector2f(screenWidth / 2, 30.f));
+		scoreText.setOrigin(scoreText.getLocalBounds().getCenter());
+		scoreText.setString(std::to_string(playerScore) + " | " + std::to_string(cpuScore));
+	}
+
 	const unsigned int scoreToWin = 3;
 	E_player roundWinner {};
 };
@@ -175,9 +184,6 @@ void newRound(GameState& gc, sf::RenderWindow& window) {
 	Paddle playerPaddle(true); // Initialise Player Paddle Obj
 	Paddle CPUPaddle(false); // Init Computer paddle
 
-	sf::Text textObj{font, "0 - 0", 30};
-	textObj.setPosition(sf::Vector2f(screenWidth / 2, 30.f));
-
 	sf::Clock deltaClock; // Delta Clock - Used to update deltaTime for frames
 
 	while ( window.isOpen() )
@@ -209,7 +215,7 @@ void newRound(GameState& gc, sf::RenderWindow& window) {
 		const bool conceded = ballObject.update(dt, playerPaddle, CPUPaddle); // update ball - calculates new position
 		ballObject.draw(window); // draw ball
 
-		window.draw(textObj);
+		window.draw(gc.scoreText); // Draw score line
 
 		window.display();
 
@@ -226,7 +232,7 @@ void newRound(GameState& gc, sf::RenderWindow& window) {
 				gc.roundWinner = E_player::Player;
 			}
 
-			textObj.setString(std::to_string(gc.playerScore) + " | " + std::to_string(gc.cpuScore));
+			gc.scoreText.setString(std::to_string(gc.playerScore) + " | " + std::to_string(gc.cpuScore));
 
 			return;
 		}
