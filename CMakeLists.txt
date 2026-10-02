@@ -18,14 +18,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(SFML)
 
 add_executable(Pong src/main.cpp
-        src/ball.cpp
-        src/ball.h
-        src/enums.h
-        src/config.h
-        src/paddle.cpp
-        src/paddle.h
-        src/gamestate.cpp
-        src/gamestate.h)
+        src/classes/ball.cpp
+        src/classes/ball.h
+        src/classes/enums.h
+        src/classes/config.h
+        src/classes/paddle.cpp
+        src/classes/paddle.h
+        src/classes/gamestate.cpp
+        src/classes/gamestate.h)
 
 add_custom_command(
         TARGET Pong POST_BUILD

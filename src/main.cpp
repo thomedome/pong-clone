@@ -1,22 +1,11 @@
 #include <SFML/Graphics.hpp>
 #include <random>
 
-#include "ball.h"
-#include "paddle.h"
-#include "enums.h"
-#include "config.h"
-#include "gamestate.h"
-
-// const sf::VideoMode screenResolution = Config::screenResolution;
-// constexpr float ballRadius = Config::ballRadius;
-// constexpr sf::Vector2f paddleSize = Config::paddleSize;
-// constexpr float cpuPaddleMoveSpeed = Config::cpuPaddleMoveSpeed;
-//
-// constexpr float ballSpeedIncrease = Config::ballSpeedIncrease;
-// constexpr int LBRandomSpeed = Config::LBRandomSpeed;
-// constexpr int UBRandomSpeed = Config::UBRandomSpeed;
-//
-// constexpr int timeBetweenRounds = Config::timeBetweenRounds;
+#include "classes/ball.h"
+#include "classes/paddle.h"
+#include "classes/enums.h"
+#include "classes/config.h"
+#include "classes/gamestate.h"
 
 void newRound(GameState& gc, sf::RenderWindow& window) {
 	// Seed Random Device
@@ -67,11 +56,11 @@ void newRound(GameState& gc, sf::RenderWindow& window) {
 
 			if (ballObject.position.x < 350) {
 				gc.cpuScore += 1;
-				gc.roundWinner = E_player::CPU;
+				gc.roundWinner = CPU;
 
 			} else {
 				gc.playerScore += 1;
-				gc.roundWinner = E_player::Player;
+				gc.roundWinner = Player;
 			}
 
 			gc.scoreText.setString(std::to_string(gc.playerScore) + " | " + std::to_string(gc.cpuScore));
