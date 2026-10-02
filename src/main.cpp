@@ -44,7 +44,7 @@ public:
 	unsigned int playerScore {0};
 	unsigned int cpuScore {0};
 
-	sf::Text scoreLineObj;
+	sf::Text scoreLineObj {font};
 
 	const unsigned int scoreToWin = 3;
 	E_player roundWinner {};
