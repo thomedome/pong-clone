@@ -1,182 +1,22 @@
-#include <algorithm>
-#include <cmath>
 #include <SFML/Graphics.hpp>
-#include <iostream>
 #include <random>
 
-using namespace std;
+#include "ball.h"
+#include "paddle.h"
+#include "enums.h"
+#include "config.h"
+#include "gamestate.h"
 
-const sf::VideoMode screenResolution({700, 700});
-constexpr float ballRadius = 10.f;
-constexpr sf::Vector2f paddleSize {25, 200};
-constexpr float cpuPaddleMoveSpeed = 170.f;
-
-constexpr float ballSpeedIncrease = 1.01f;
-constexpr int LBRandomSpeed = 150;
-constexpr int UBRandomSpeed = 250;
-
-constexpr int timeBetweenRounds = 3;
-
-const float screenWidth {static_cast<float>(screenResolution.size.x)};
-const float screenHeight {static_cast<float>(screenResolution.size.y)};
-
-const sf::Font font ("assets/fonts/arial.ttf");
-
-static std::random_device rd; // Seed the random device
-static std::mt19937 gen(rd()); // Using Mersenne Twister engine - better randomness than rand() and srand()
-static std::uniform_real_distribution<> dis(LBRandomSpeed, UBRandomSpeed); // distribution between 150 and 250
-
-
-class Paddle;
-
-enum ballDirection {
-	Left,
-	Right,
-};
-
-enum E_player {
-	Player,
-	CPU
-};
-
-class GameState {
-public:
-	unsigned int playerScore {0};
-	unsigned int cpuScore {0};
-
-	// Score Text
-	sf::Text scoreText{font, "0 | 0", 30};
-
-	GameState() {
-		scoreText.setPosition(sf::Vector2f(screenWidth / 2, 30.f));
-		scoreText.setOrigin(scoreText.getLocalBounds().getCenter());
-		scoreText.setString(std::to_string(playerScore) + " | " + std::to_string(cpuScore));
-	}
-
-	const unsigned int scoreToWin = 3;
-	E_player roundWinner {};
-};
-
-class Ball {
-	public:
-		sf::Vector2f position = {static_cast<float>(screenResolution.size.x)/ 2.f, static_cast<float>(screenResolution.size.y) / 2.f};
-		sf::CircleShape objectOnScreen{ballRadius};
-		sf::Vector2f ballVelocity{0, 0};
-		sf::Vector2f newPos{};
-		ballDirection BallDir = Right;
-
-		bool conceded = false;
-
-		Ball() { // Constructor
-			objectOnScreen.setOrigin({ballRadius, ballRadius});
-			objectOnScreen.setFillColor(sf::Color::White);
-
-			objectOnScreen.setPosition(position);
-			ballVelocity = sf::Vector2f(static_cast<float>(dis(gen)), static_cast<float>(dis(gen)));
-		}
-
-		void updateDir(const ballDirection dir) {
-			BallDir = dir;
-
-			if (BallDir == Left) {
-				ballVelocity.x = -std::abs(ballVelocity.x);
-			} else {
-				ballVelocity.x = std::abs(ballVelocity.x);
-			}
-
-			ballVelocity = sf::Vector2f(ballVelocity.x * ballSpeedIncrease, ballVelocity.y * ballSpeedIncrease);
-		}
-
-		void draw(sf::RenderWindow& Window) {
-			objectOnScreen.setPosition(position);
-			Window.draw(objectOnScreen);
-		}
-
-		bool update(float deltaTime, const Paddle& playerPaddle, const Paddle& CPUPaddle); // Forward Declaration
-};
-
-class Paddle {
-public:
-	sf::Vector2f position;
-	sf::RectangleShape objectOnScreen {paddleSize};
-
-	bool playerOwned;
-
-	explicit Paddle(const bool isPlayer) : playerOwned(isPlayer) { // Constructor
-		objectOnScreen.setOrigin({paddleSize.x / 2, paddleSize.y / 2});
-		objectOnScreen.setFillColor(sf::Color::White);
-
-		if (isPlayer) {
-			position = {(10 + paddleSize.x), screenHeight / 2};
-		} else {
-			position = {screenWidth - (10 + paddleSize.x), screenHeight / 2};
-		}
-	}
-
-	void update(const sf::RenderWindow& window, const Ball& ball, const float dt) {
-		if (playerOwned) {
-			const sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-
-			const auto floatedYPos = static_cast<float>(mousePos.y);
-
-			// cout << floatedYPos << std::endl;
-
-			// Clamping Y Position
-			if (floatedYPos < (0 + (paddleSize.y / 2))) { // If collided with roof
-				position.y = 0 + (paddleSize.y / 2);
-			} else if (floatedYPos > (screenHeight - (paddleSize.y / 2))) { // If collided with floor
-				position.y = screenHeight - (paddleSize.y / 2);
-			} else { // Non Y-Axis Collision
-				position.y = static_cast<float>(mousePos.y);
-			}
-		} else if (!playerOwned) {
-			const float diff = position.y - ball.position.y;
-
-			if (diff >= 20) {
-				position.y = position.y - (cpuPaddleMoveSpeed * dt);
-			} else if ((diff <= -20)) {
-				position.y = position.y + (cpuPaddleMoveSpeed * dt);
-			}
-
-			position.y = std::clamp(position.y, paddleSize.y / 2, screenHeight - (paddleSize.y / 2));
-		}
-	}
-
-	void draw(sf::RenderWindow& window) {
-		objectOnScreen.setPosition(position);
-		window.draw(objectOnScreen);
-	}
-};
-
-bool Ball::update(const float deltaTime, const Paddle& playerPaddle, const Paddle& CPUPaddle) {
-	newPos = position + (ballVelocity * deltaTime);
-
-	if (newPos.x >= (screenWidth - ballRadius) || newPos.x <= ballRadius) { // Checking if the ball has collided with the side of the screen (Non-Paddle.)
-		conceded = true;
-		ballVelocity = {0, 0};
-		return true;
-	}
-
-	if (newPos.y <= ballRadius || newPos.y >= (screenHeight - ballRadius)) { // Checking if the ball has collided with the roof / floor of the screen.
-		ballVelocity.y = -ballVelocity.y; // Inverse Y Velocity
-	}
-
-	if (BallDir == Right) {
-		if (objectOnScreen.getGlobalBounds().findIntersection(CPUPaddle.objectOnScreen.getGlobalBounds())) { // CPU Paddle Collision
-			updateDir(Left);
-		}
-	} else if (BallDir == Left) {
-		if (objectOnScreen.getGlobalBounds().findIntersection(playerPaddle.objectOnScreen.getGlobalBounds())) { // Player Paddle Collision
-			updateDir(Right);
-		}
-	} else {
-		cout << "[BALL] Object missing Direction Enum" << endl;
-	}
-
-	position = newPos;
-
-	return false;
-}
+// const sf::VideoMode screenResolution = Config::screenResolution;
+// constexpr float ballRadius = Config::ballRadius;
+// constexpr sf::Vector2f paddleSize = Config::paddleSize;
+// constexpr float cpuPaddleMoveSpeed = Config::cpuPaddleMoveSpeed;
+//
+// constexpr float ballSpeedIncrease = Config::ballSpeedIncrease;
+// constexpr int LBRandomSpeed = Config::LBRandomSpeed;
+// constexpr int UBRandomSpeed = Config::UBRandomSpeed;
+//
+// constexpr int timeBetweenRounds = Config::timeBetweenRounds;
 
 void newRound(GameState& gc, sf::RenderWindow& window) {
 	// Seed Random Device
@@ -190,8 +30,10 @@ void newRound(GameState& gc, sf::RenderWindow& window) {
 	{
 		while ( const std::optional event = window.pollEvent() )
 		{
-			if ( event->is<sf::Event::Closed>() )
+			if ( event->is<sf::Event::Closed>() ) {
 				window.close();
+				exit(0);
+			}
 		}
 
 		float dt = deltaClock.restart().asSeconds(); // DeltaTime between frames
@@ -240,7 +82,7 @@ void newRound(GameState& gc, sf::RenderWindow& window) {
 }
 
 int main() {
-	sf::RenderWindow window(screenResolution, "Pong by thomedome", sf::Style::Titlebar | sf::Style::Close); // Initialise Window
+	sf::RenderWindow window(Config::screenResolution, "Pong by thomedome", sf::Style::Titlebar | sf::Style::Close); // Initialise Window
 	window.setVerticalSyncEnabled(true); // Prevent GPU Burn
 
 	GameState gameState;
@@ -250,87 +92,82 @@ int main() {
 		while ( const std::optional event = window.pollEvent() ) {
 			if ( event->is<sf::Event::Closed>() ) {
 				window.close();
+				exit(0);
 			}
 		}
 
-		newRound(gameState, window);
+		while (true) {
+			newRound(gameState, window);
 
-		if (gameState.cpuScore == gameState.scoreToWin) {
-			gameState.roundWinner = E_player::CPU;
-			break;
-		} if (gameState.playerScore == gameState.scoreToWin) {
-			gameState.roundWinner = E_player::Player;
-			break;
-		}
-
-		sf::Clock roundClock = sf::Clock();
-
-		// Text Between Rounds
-		sf::Text textObj {font, "3", 100};
-		textObj.setOrigin(textObj.getLocalBounds().getCenter());
-		textObj.setPosition(sf::Vector2f(screenWidth / 2, screenHeight / 2));
-
-		while (window.isOpen()) {
-
-			while ( const std::optional event = window.pollEvent() ) {
-				if ( event->is<sf::Event::Closed>() ) {
-					window.close();
-				}
-			}
-
-			const float elapsed = roundClock.getElapsedTime().asSeconds();
-
-			if (elapsed < 1) {
-				textObj.setString("3");
-			} if (elapsed > 1 && elapsed < 2) {
-				textObj.setString("2");
-			} if (elapsed > 2 && elapsed < 3) {
-				textObj.setString("1");
-			} if (elapsed > 3) {
-				window.clear();
-				window.display();
+			if (gameState.cpuScore == gameState.scoreToWin) {
+				gameState.roundWinner = CPU;
+				break;
+			} if (gameState.playerScore == gameState.scoreToWin) {
+				gameState.roundWinner = Player;
 				break;
 			}
 
-			window.clear();
-			window.draw(textObj);
-			window.display();
-		}
+			sf::Clock roundClock = sf::Clock();
 
-	string text {};
+			// Text Between Rounds
+			sf::Text textObj {Fonts::font, "3", 100};
+			textObj.setOrigin(textObj.getLocalBounds().getCenter());
+			textObj.setPosition(sf::Vector2f(Config::screenWidth / 2, Config::screenHeight / 2));
 
-	if (gameState.roundWinner == E_player::CPU) {
-		text = "CPU";
-	} else if (gameState.roundWinner == E_player::Player) {
-		text = "Player";
-	}
+			while (roundClock.getElapsedTime().asSeconds() < 3.f) {
+				const float elapsed = roundClock.getElapsedTime().asSeconds();
 
-	text += " won!";
+				if (elapsed < 1.f) {
+					textObj.setString("3");
+				} if (elapsed > 1.f && elapsed < 2.f) {
+					textObj.setString("2");
+				} if (elapsed > 2.f && elapsed < 3.f) {
+					textObj.setString("1");
+				} if (elapsed > 3.f) {
+					window.clear();
+					window.display();
+				}
 
-	sf::Clock endClock = sf::Clock();
-	sf::Text textObj1 {font, text, 50};
-	textObj1.setOrigin(textObj1.getLocalBounds().getCenter());
-	textObj1.setPosition(sf::Vector2f(screenWidth / 2, screenHeight / 2));
-
-	while (window.isOpen()) {
-		while (const std::optional event = window.pollEvent() ) {
-			if ( event->is<sf::Event::Closed>() ) {
-				window.close();
+				window.clear();
+				window.draw(textObj);
+				window.display();
 			}
 		}
-		const float elapsed = endClock.getElapsedTime().asSeconds();
-		if (elapsed < 5) {
-			window.clear();
-			window.draw(textObj1);
-			window.display();
+
+		std::string text {};
+
+		if (gameState.roundWinner == E_player::CPU) {
+			text = "CPU";
+		} else if (gameState.roundWinner == E_player::Player) {
+			text = "Player";
 		}
 
-		if (elapsed > 5) {
-			break;
+		text += " won!";
+
+		sf::Clock endClock = sf::Clock();
+		sf::Text textObj1 {Fonts::font, text, 50};
+		textObj1.setOrigin(textObj1.getLocalBounds().getCenter());
+		textObj1.setPosition(sf::Vector2f(Config::screenWidth / 2, Config::screenHeight / 2));
+
+		while (window.isOpen()) {
+			while (const std::optional event = window.pollEvent() ) {
+				if ( event->is<sf::Event::Closed>() ) {
+					window.close();
+					exit(0);
+				}
+			}
+			const float elapsed = endClock.getElapsedTime().asSeconds();
+			if (elapsed < 5) {
+				window.clear();
+				window.draw(textObj1);
+				window.display();
+			}
+
+			if (elapsed > 5) {
+
+				window.close(); // Exit Game
+				return 0;
+			}
 		}
 	}
-}
-	window.close();
-
-	return 0;
 }
