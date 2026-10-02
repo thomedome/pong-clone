@@ -8,3 +8,5 @@ Thought it was a simple starter project to begin learning how low level renderin
 - C++ 17
 - SFML 3
 - CMake
+
+![Pong gameplay](preview.png)
