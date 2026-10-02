@@ -9,7 +9,7 @@ using namespace std;
 const sf::VideoMode screenResolution({700, 700});
 constexpr float ballRadius = 10.f;
 constexpr sf::Vector2f paddleSize {25, 200};
-constexpr float cpuPaddleMoveSpeed = 160.f;
+constexpr float cpuPaddleMoveSpeed = 170.f;
 
 constexpr float ballSpeedIncrease = 1.01f;
 constexpr int LBRandomSpeed = 150;
