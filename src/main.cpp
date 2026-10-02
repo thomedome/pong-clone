@@ -85,7 +85,7 @@ int main() {
 			}
 		}
 
-		while (true) {
+		while (gameState.cpuScore != gameState.scoreToWin && gameState.playerScore != gameState.scoreToWin) {
 			newRound(gameState, window);
 
 			if (gameState.cpuScore == gameState.scoreToWin) {
@@ -104,6 +104,14 @@ int main() {
 			textObj.setPosition(sf::Vector2f(Config::screenWidth / 2, Config::screenHeight / 2));
 
 			while (roundClock.getElapsedTime().asSeconds() < 3.f) {
+
+				while ( const std::optional event = window.pollEvent() ) {
+					if ( event->is<sf::Event::Closed>() ) {
+						window.close();
+						exit(0);
+					}
+				}
+
 				const float elapsed = roundClock.getElapsedTime().asSeconds();
 
 				if (elapsed < 1.f) {
