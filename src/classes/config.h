@@ -30,7 +30,7 @@ namespace Config {
 }
 
 namespace Fonts {
-    const sf::Font font ("assets/fonts/arial.ttf");
+    const sf::Font font ("assets/fonts/LiberationSans-Regular.ttf");
 }
 
 namespace random {
